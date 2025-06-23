@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Socket.IO Chat Rooms</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #messages { list-style: none; padding: 0; max-height: 300px; overflow-y: scroll; border: 1px solid #ccc; margin-bottom: 10px; }
+    #messages li { padding: 5px 10px; border-bottom: 1px solid #eee; }
+  </style>
+</head>
+<body>
+  <div id="loginDiv">
+    <input id="username" placeholder="Enter username" />
+    <input id="room" placeholder="Enter room" />
+    <button id="joinBtn">Join Chat</button>
+  </div>
+
+  <div id="chatDiv" style="display:none;">
+    <h3 id="roomName"></h3>
+    <ul id="messages"></ul>
+    <input id="messageInput" placeholder="Type message..." autocomplete="off"/>
+    <button id="sendBtn">Send</button>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    const loginDiv = document.getElementById('loginDiv');
+    const chatDiv = document.getElementById('chatDiv');
+    const roomName = document.getElementById('roomName');
+    const messages = document.getElementById('messages');
+    const usernameInput = document.getElementById('username');
+    const roomInput = document.getElementById('room');
+    const messageInput = document.getElementById('messageInput');
+    const joinBtn = document.getElementById('joinBtn');
+    const sendBtn = document.getElementById('sendBtn');
+
+    let username = '';
+    let room = '';
+
+    joinBtn.onclick = () => {
+      username = usernameInput.value.trim();
+      room = roomInput.value.trim();
+      if (!username || !room) {
+        alert('Please enter username and room');
+        return;
+      }
+      socket.emit('joinRoom', { username, room });
+      loginDiv.style.display = 'none';
+      chatDiv.style.display = 'block';
+      roomName.innerText = `Room: ${room}`;
+    };
+
+    sendBtn.onclick = () => {
+      const msg = messageInput.value.trim();
+      if (msg) {
+        socket.emit('chatMessage', msg);
+        messageInput.value = '';
+      }
+    };
+
+    socket.on('message', msg => {
+      const li = document.createElement('li');
+      li.textContent = msg;
+      messages.appendChild(li);
+      messages.scrollTop = messages.scrollHeight;
+    });
+
+    messageInput.addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') sendBtn.onclick();
+    });
+  </script>
+</body>
+</html>
