@@ -1,0 +1,40 @@
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
+app.use(express.static('public'));
+
+io.on('connection', (socket) => {
+  console.log('A user connected');
+
+  socket.on('joinRoom', ({ username, room }) => {
+    socket.join(room);
+    socket.username = username;
+    socket.room = room;
+    socket.emit('message', `Welcome ${username} to room ${room}`);
+    socket.to(room).emit('message', `${username} has joined the room`);
+  });
+
+  socket.on('chatMessage', (msg) => {
+    const sanitizedMsg = sanitize(msg);
+    io.to(socket.room).emit('message', `${socket.username}: ${sanitizedMsg}`);
+  });
+
+  socket.on('disconnect', () => {
+    if (socket.username && socket.room) {
+      io.to(socket.room).emit('message', `${socket.username} left the room`);
+    }
+    console.log('User disconnected');
+  });
+});
+
+function sanitize(str) {
+  return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
